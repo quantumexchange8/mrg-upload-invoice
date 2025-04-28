@@ -77,7 +77,24 @@ class InvoicesImport implements ToCollection, WithHeadingRow
                     $itemDueDate = $this->parseDate($item['duedate']);
                     
                     // Create the Invoice Item
-                    InvoiceItem::create([
+                    InvoiceItem::firstOrCreate(
+                        [
+                        'invoice_id' => $invoice->id,
+                        'doc_no' => $item['docno'],
+                        'doc_date' => $itemDocDate,
+                        'code' => $item['code'],
+                        'description_hdr' => $item['description_hdr'] ?? null,
+                        'seq' => $item['seq'] ?? null,
+                        'description_dtl' => $item['description_dtl'] ?? null,
+                        'qty' => $item['qty'] ?? null,
+                        'uom' => $item['uom'] ?? null,
+                        'unit_price' => $item['unitprice'] ?? null,
+                        'amount' => $item['amount'] ?? null,
+                        'item_code' => $item['itemcode'] ?? null,
+                        'account' => $item['account'] ?? null,
+                        'due_date' => $itemDueDate,
+                        ],
+                        [
                         'invoice_id' => $invoice->id,
                         'doc_no' => $item['docno'],
                         'doc_date' => $itemDocDate,
