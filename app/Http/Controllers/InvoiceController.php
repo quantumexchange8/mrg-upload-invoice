@@ -30,7 +30,12 @@ class InvoiceController extends Controller
     
         } catch (\Exception $e) {
             // If an error occurs during the import, return an error message
-            return redirect()->back()->with('error', 'An error occurred while uploading the invoices: ' . $e->getMessage());
+            // return redirect()->back()->with('error', 'An error occurred while uploading the invoices: ' . $e->getMessage());
+            return redirect()->back()->with('toast', [
+                'title' => 'An error occurred while uploading the invoices!',
+                'type' => 'error'
+            ]);
+
         }
     }
 }
