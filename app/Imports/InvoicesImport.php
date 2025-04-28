@@ -22,6 +22,11 @@ class InvoicesImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
+        // Filter out any rows without docno
+        $rows = $rows->filter(function ($row) {
+            return !empty($row['docno']);
+        });
+
         $groupedData = $rows->groupBy('docno');
         
         foreach ($groupedData as $docNo => $invoiceItems) {
@@ -76,7 +81,7 @@ class InvoicesImport implements ToCollection, WithHeadingRow
                         'invoice_id' => $invoice->id,
                         'doc_no' => $item['docno'],
                         'doc_date' => $itemDocDate,
-                        'code' => $item['code'] ?? null,
+                        'code' => $item['code'],
                         'description_hdr' => $item['description_hdr'] ?? null,
                         'seq' => $item['seq'] ?? null,
                         'description_dtl' => $item['description_dtl'] ?? null,

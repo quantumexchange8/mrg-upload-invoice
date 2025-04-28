@@ -22,11 +22,11 @@ class InvoiceController extends Controller
             Excel::import(new InvoicesImport, $file);
     
             // After the import process finishes, redirect with a success message
-            return redirect()->back()->with('success', 'Invoices and items uploaded successfully!');
-            // return redirect()->back()->with('toast', [
-            //     'title' => 'test',
-            //     'type' => 'success'
-            // ]);
+            // return redirect()->back()->with('success', 'Invoices and items uploaded successfully!');
+            return redirect()->back()->with('toast', [
+                'title' => 'Invoices and items uploaded successfully!',
+                'type' => 'success'
+            ]);
     
         } catch (\Exception $e) {
             // If an error occurs during the import, return an error message

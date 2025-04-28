@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::create('invoice_items', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('invoice_id')->nullable();
-            $table->string('doc_no')->nullable();
-            $table->date('doc_date')->nullable();
-            $table->string('code')->nullable();
+            $table->unsignedBigInteger('invoice_id');
+            $table->string('doc_no');
+            $table->date('doc_date');
+            $table->string('code');
             $table->string('description_hdr')->nullable();
             $table->integer('seq')->nullable();
             $table->string('description_dtl')->nullable();

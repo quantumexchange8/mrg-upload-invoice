@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
-            $table->string('doc_no')->nullable();
-            $table->date('doc_date')->nullable();
-            $table->string('code')->nullable();
+            $table->string('doc_no');
+            $table->date('doc_date');
+            $table->string('code');
             $table->string('company_name')->nullable();
             $table->string('address1')->nullable();
             $table->string('address2')->nullable();
