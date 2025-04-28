@@ -43,8 +43,9 @@ const handleFileUpload = (event: Event) => {
 <template>
     <Head title="Invoice Submit" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+    <!-- <AppLayout :breadcrumbs="breadcrumbs"> -->
+        <!-- <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4"> -->
+        <div class="flex h-screen flex-1 flex-col justify-center items-center gap-4 rounded-xl p-4">
             <!-- 👇 File Upload Area -->
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -75,5 +76,5 @@ const handleFileUpload = (event: Event) => {
                 </span>
             </div>
         </div>
-    </AppLayout>
+    <!-- </AppLayout> -->
 </template>
