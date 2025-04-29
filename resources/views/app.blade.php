@@ -45,7 +45,7 @@
         <!-- <link rel="apple-touch-icon" sizes="180x180" href="/public/img/qcg-icon.png" /> -->
 
         @routes
-        @vite(['resources/js/app.ts', "resources/js/Pages/{$page['component']}.vue"])
+        @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
