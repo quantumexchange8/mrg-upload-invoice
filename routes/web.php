@@ -1,26 +1,39 @@
 <?php
 
 use Inertia\Inertia;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Session;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
 
-// Route::get('/', function () {
-//     return Inertia::render('Welcome');
-// })->name('home');
+Route::get('locale/{locale}', function ($locale) {
+    App::setLocale($locale);
+    Session::put("locale", $locale);
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-// Route::get('invoice_submit', function () {
-//     return Inertia::render('InvoiceSubmit');
-// })->middleware(['auth', 'verified'])->name('invoice_submit');
+    return redirect()->back();
+});
 
 Route::get('/', function () {
-    return Inertia::render('InvoiceSubmit');
-})->name('invoice_submit');
+    return redirect(route('invoice'));
+});
 
-Route::post('/invoices/upload', [InvoiceController::class, 'upload']);
+// Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
+Route::prefix('profile')->group(function () {
+    Route::get('/', [ProfileController::class, 'index'])->name('profile');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::prefix('invoice')->group(function () {
+    Route::get('/', [InvoiceController::class, 'index'])->name('invoice');
+    Route::get('/getInvoicelisting', [InvoiceController::class, 'getInvoicelisting'])->name('invoice.getInvoicelisting');
+
+    Route::post('upload', [InvoiceController::class, 'upload'])->name('invoice.upload');
+    Route::post( 'sendEmails', [InvoiceController::class, 'sendEmails'])->name('invoice.sendEmails');
+});
+
+require __DIR__ . '/auth.php';

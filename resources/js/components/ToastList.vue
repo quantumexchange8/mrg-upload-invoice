@@ -1,33 +1,25 @@
-<script setup lang="ts">
-import ToastListItem from "@/components/ToastListItem.vue";
-import { onUnmounted } from "vue";
-import { Inertia } from "@inertiajs/inertia";
-import { usePage } from "@inertiajs/vue3";
-import toast from "@/composables/toast";
-
-interface ToastPayload {
-    title: string;
-    message: string;
-    type: 'success' | 'info' | 'warning' | 'error';
-}
+<script setup>
+import ToastListItem from "@/Components/ToastListItem.vue";
+import {onUnmounted} from "vue";
+import {Inertia} from "@inertiajs/inertia";
+import {usePage} from "@inertiajs/vue3";
+import toast from "@/Composables/toast.js"
 
 const page = usePage();
 
-const removeFinishEventListener = Inertia.on("finish", () => {
-    const toastPayload = page.props.toast as ToastPayload | undefined;
-
-    if (toastPayload) {
+let removeFinishEventListener = Inertia.on("finish", () => {
+    if (page.props.toast) {
         toast.add({
-            title: toastPayload.title,
-            message: toastPayload.message,
-            type: toastPayload.type,
+            title: page.props.toast.title,
+            message: page.props.toast.message,
+            type: page.props.toast.type,
         });
     }
 });
 
 onUnmounted(() => removeFinishEventListener());
 
-function remove(index: number) {
+function remove(index) {
     toast.remove(index);
 }
 </script>

@@ -114,6 +114,7 @@ return [
         //         'username' => 'username',
         //         'password' => 'password',
         //     ],
+        //     'verify_server_certificate' => true,
         // ],
         //
         // 'production' => [
@@ -125,6 +126,7 @@ return [
         //     'headers' => [
         //         'X-Foo' => 'Bar',
         //     ],
+        //     'verify_server_certificate' => true,
         // ],
     ],
 
@@ -140,8 +142,9 @@ return [
         '**/*.log',
 
         // You can include paths to other log types as well, such as apache, nginx, and more.
-        '/var/log/httpd/*',
-        '/var/log/nginx/*',
+        // This key => value pair can be used to rename and group multiple paths into one folder in the UI.
+        '/var/log/httpd/*' => 'Apache',
+        '/var/log/nginx/*' => 'Nginx',
 
         // MacOS Apple Silicon logs
         '/opt/homebrew/var/log/nginx/*',
@@ -228,4 +231,14 @@ return [
     'lazy_scan_chunk_size_in_mb' => 50,
 
     'strip_extracted_context' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Per page options
+    |--------------------------------------------------------------------------
+    | Define the available options for number of results per page
+    |
+    */
+
+    'per_page_options' => [10, 25, 50, 100, 250, 500],
 ];

@@ -50,12 +50,12 @@ class InvoicesImport implements ToCollection, WithHeadingRow
                 [
                     'doc_no' => $docNo,
                     'doc_date' => $docDate,
-                    'code' => $firstItem['code'] ?? null
+                    'code' => $firstItem['code']
                 ],
                 [
                     'doc_no' => $docNo,
                     'doc_date' => $docDate,
-                    'code' => $firstItem['code'] ?? null,
+                    'code' => $firstItem['code'],
                     'company_name' => $firstItem['companyname'] ?? null,
                     'address1' => $firstItem['address1'] ?? null,
                     'address2' => $firstItem['address2'] ?? null,

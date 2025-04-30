@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import {onMounted} from "vue";
 import {
     IconCircleCheckFilled,
@@ -11,11 +11,7 @@ import {
 const props = defineProps({
     title: String,
     message: String,
-    type: {
-        type: String,
-        default: 'info',
-        validator: (value: string) => ['success', 'info', 'warning', 'error'].includes(value),
-    },
+    type: String, // Accepts 'success', 'info', 'warning', 'error'
     duration: {
         type: Number,
         default: 3000

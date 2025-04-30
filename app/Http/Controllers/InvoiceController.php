@@ -2,12 +2,103 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Inertia\Inertia;
+use App\Models\Invoice;
+use App\Mail\InvoiceEmail;
 use Illuminate\Http\Request;
 use App\Imports\InvoicesImport;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
+    public function index()
+    {
+        return Inertia::render('Invoice/Invoice');
+    }
+
+    public function getInvoicelisting(Request $request)
+    {
+
+        if ($request->has('lazyEvent')) {
+            $data = json_decode($request->only(['lazyEvent'])['lazyEvent'], true); //only() extract parameters in lazyEvent
+
+            $query = Invoice::latest();
+
+            // Handle search functionality
+            $search = $data['filters']['global'];
+            if ($search) {
+                $query->where(function ($query) use ($search) {
+                    // $query->whereHas('downline', function ($query) use ($search) {
+                    //     $query->where('name', 'like', '%' . $search . '%')
+                    //         ->orWhere('email', 'like', '%' . $search . '%')
+                    //         ->orWhere('id_number', 'like', '%' . $search . '%');
+                    // })
+                    // ->orWhereHas('upline', function ($query) use ($search) {
+                    //     $query->where('name', 'like', '%' . $search . '%')
+                    //         ->orWhere('email', 'like', '%' . $search . '%')
+                    //         ->orWhere('id_number', 'like', '%' . $search . '%');
+                    // })
+                    $query->where('doc_no', 'like', '%' . $search . '%')
+                    ->orWhere('code', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            }
+
+            $startDate = $data['filters']['start_date'];
+            $endDate = $data['filters']['end_date'];
+            
+            if ($startDate && $endDate) {
+                $start_date = Carbon::parse($startDate)->addDay()->startOfDay();
+                $end_date = Carbon::parse($endDate)->addDay()->endOfDay();
+    
+                $query->whereBetween('created_at', [$start_date, $end_date]);
+            } else {
+                $query->whereDate('created_at', '>=', '2020-01-01');
+            }
+        
+            $startClosedDate = $data['filters']['start_due_date'];
+            $endClosedDate = $data['filters']['end_due_date'];
+
+            if ($startClosedDate && $endClosedDate) {
+                $start_due_date = Carbon::parse($startClosedDate)->addDay()->startOfDay();
+                $end_due_date = Carbon::parse($endClosedDate)->addDay()->endOfDay();
+
+                $query->whereBetween('due_date', [$start_due_date, $end_due_date]);
+            } else {
+                $query->whereDate('due_date', '>=', '2020-01-01');
+            }
+
+            // Handle sorting
+            if ($data['sortField'] && $data['sortOrder']) {
+                $order = $data['sortOrder'] == 1 ? 'asc' : 'desc';
+                $query->orderBy($data['sortField'], $order);
+            } else {
+                $query->orderByDesc('created_at');
+            }
+
+            // Handle pagination
+            $rowsPerPage = $data['rows'] ?? 15; // Default to 15 if 'rows' not provided
+                    
+            // Export logic
+            // if ($request->has('exportStatus') && $request->exportStatus) {
+            //     $rebateHistory = $query->get();
+
+            //     return Excel::download(new RebateHistoryExport($rebateHistory), now() . '-rebate-report.xlsx');
+            // }
+
+            $invoices = $query->paginate($rowsPerPage);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => $invoices,
+        ]);
+
+    }
+
     public function upload(Request $request)
     {
         $request->validate([
@@ -38,4 +129,39 @@ class InvoiceController extends Controller
 
         }
     }
+
+    public function sendEmails(Request $request)
+    {
+        $invoiceIds = $request->invoice_ids;  // Expecting an array of invoice IDs
+        $invoices = Invoice::whereIn('id', $invoiceIds)->get();  // Get the selected invoices from the database
+    
+        try {
+            // Ensure the emails are queued
+            foreach ($invoices as $invoice) {
+                try {
+                    // Queue each email to be sent later
+                    Mail::to($invoice->email)->send(new InvoiceEmail($invoice));
+                } catch (\Exception $e) {
+                    // If there’s an error with a specific email, log the error and continue
+                    Log::error("Failed to send email for invoice {$invoice->doc_no}: " . $e->getMessage());
+                    // Optionally, add specific error handling for individual emails
+                }
+            }
+    
+            // After queuing all emails, immediately return success
+            return redirect()->back()->with('toast', [
+                'title' => 'Emails have been queued successfully!',
+                'type' => 'success'
+            ]);
+    
+        } catch (\Exception $e) {
+            // If there's a general error, show the error message
+            Log::error("An error occurred while queuing the emails: " . $e->getMessage());
+            return redirect()->back()->with('toast', [
+                'title' => 'An error occurred while queuing the emails!',
+                'type' => 'error'
+            ]);
+        }
+    }
+            
 }
