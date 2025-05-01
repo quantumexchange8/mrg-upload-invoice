@@ -15,5 +15,4 @@ import InvoiceSubmit from "@/Pages/Invoice/Partials/InvoiceSubmit.vue";
             <InvoiceListing />
         </div>
     </AuthenticatedLayout>
-
 </template>

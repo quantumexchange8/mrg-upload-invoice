@@ -352,14 +352,14 @@ const collapseAll = () => {
                 :rows="10"
                 ref="dt"
                 dataKey="id"
-                selectionMode="single"
+                selectionMode="multiple"
                 @row-click="(event) => openDialog(event.data)"
                 :totalRecords="totalRecords"
                 :loading="isLoading"
                 @page="onPage($event)"
                 @sort="onSort($event)"
                 @filter="onFilter($event)"
-                :globalFilterFields="['name', 'email', 'username', 'meta_login', 'id_number', 'deal_id']"
+                :globalFilterFields="['email']"
             >
                 <template #header>
                     <div class="flex flex-col md:flex-row gap-3 items-center self-stretch pb-3 md:pb-5">
@@ -683,17 +683,12 @@ const collapseAll = () => {
                 </div>
             </template>
             <Column expander style="width: 5rem" />
-            <Column field="doc_date" :header="$t('public.doc_date')" sortable style="width: 45%" />
-            <Column field="total_amount" :header="$t('public.total_amount') + ' ($)'" style="width: 45%">
+            <Column field="doc_date" :header="$t('public.doc_date')" sortable />
+            <Column field="total_amount" :header="$t('public.total_amount') + ' ($)'">
                 <template #body="slotProps">
                     {{ formatAmount(slotProps.data.total_amount) }}
                 </template>
             </Column>
-            <!-- <Column field="total_balance" :header="$t('public.total_balance') + ' ($)'" style="width: 30%">
-                <template #body="slotProps">
-                    {{ formatAmount(slotProps.data.total_balance) }}
-                </template>
-            </Column> -->
             <template #expansion="slotProps">
                 <DataTable
                     :value="slotProps.data.invoice_items"
