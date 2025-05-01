@@ -1,5 +1,11 @@
 <script setup>
 import {onMounted, ref, watch, watchEffect} from "vue";
+import {CalendarIcon, ClockRewindIcon} from "@/Components/Icons/outline.jsx";
+import {
+    IconPlus,
+    IconMinus,
+    IconCloudDownload
+} from "@tabler/icons-vue";
 import {generalFormat, transactionFormat} from "@/Composables/index.js";
 import debounce from "lodash/debounce.js";
 import { usePage, router} from "@inertiajs/vue3";
@@ -22,6 +28,8 @@ import Popover from 'primevue/popover';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import Badge from '@/Components/Badge.vue';
 import RadioButton from 'primevue/radiobutton';
+import Dialog from 'primevue/dialog';
+import IconField from "primevue/iconfield";
 
 // const props = defineProps({
 //   uplines: Array,
@@ -40,6 +48,7 @@ const rows = ref(10);
 const page = ref(0);
 const sortField = ref(null);
 const sortOrder = ref(null);  // (1 for ascending, -1 for descending)
+const visible = ref(false);
 
 const filters = ref({
     global: null,
@@ -277,6 +286,51 @@ const sendEmails = () => {
   });
 };
 
+// dialog
+const data = ref({});
+const openDialog = (rowData) => {
+    visible.value = true;
+    fetchInvoiceItems(rowData.id);
+};
+
+const invoiceItems = ref([]);
+
+const fetchInvoiceItems = async (invoiceId) => {
+    isLoading.value = true;
+
+    const itemLazyParams = {
+        ...lazyParams.value,
+        filters: filters.value,
+        invoice_id: invoiceId,
+    };
+
+    try {
+        const params = {
+            lazyEvent: JSON.stringify(itemLazyParams),
+        };
+
+        const url = route('invoice.getInvoiceItems', params);
+        const response = await fetch(url);
+        const result = await response.json();
+
+        invoiceItems.value = result?.data || [];
+    } catch (e) {
+        console.error('Error fetching invoice items:', e);
+        invoiceItems.value = [];
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+const expandedRows = ref({});
+
+const expandAll = () => {
+    expandedRows.value = invoiceItems.value.reduce((acc, p) => (acc[p.id] = true) && acc, {});
+};
+const collapseAll = () => {
+    expandedRows.value = null;
+};
+
 </script>
 
 <template>
@@ -298,6 +352,8 @@ const sendEmails = () => {
                 :rows="10"
                 ref="dt"
                 dataKey="id"
+                selectionMode="single"
+                @row-click="(event) => openDialog(event.data)"
                 :totalRecords="totalRecords"
                 :loading="isLoading"
                 @page="onPage($event)"
@@ -522,7 +578,7 @@ const sendEmails = () => {
                     {{ $t('public.filter_due_date') }}
                 </div>
                 <div class="flex flex-col relative gap-1 self-stretch">
-                    <DatePicker
+                    <!-- <DatePicker
                         v-model="selectedCloseDate"
                         selectionMode="range"
                         :manualInput="false"
@@ -539,7 +595,7 @@ const sendEmails = () => {
                         @click="clearCloseDate"
                     >
                         <IconX size="20" />
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -555,4 +611,115 @@ const sendEmails = () => {
             </div>
         </div>
     </Popover>
+
+    <Dialog
+        v-model:visible="visible"
+        modal
+        :header="$t('public.invoice_items')"
+        class="dialog-xs md:dialog-lg"
+    >
+        <DataTable
+            v-model:expandedRows="expandedRows"
+            :value="invoiceItems"
+            dataKey="id"
+            removable-sort
+        >
+            <template #header>
+                <div class="flex flex-col gap-5 items-center self-stretch mb-5">
+                    <!-- <div class="flex flex-col gap-3 md:flex-row md:justify-between items-center self-stretch">
+                        <div class="flex flex-col md:flex-row gap-3 items-center w-full">
+                            <IconField iconPosition="left" class="relative flex items-center w-full md:w-60">
+                                <CalendarIcon class="z-20 w-5 h-5 text-gray-400" />
+                                <MultiSelect
+                                    v-model="selectedMonths"
+                                    filter
+                                    :options="months"
+                                    :placeholder="$t('public.month_placeholder')"
+                                    :maxSelectedLabels="1"
+                                    :selectedItemsLabel="`${selectedMonths.length} ${$t('public.months_selected')}`"
+                                    class="w-full md:w-60 font-normal"
+                                />
+                            </IconField>
+                            <DatePicker
+                                v-model="selectedCloseDate"
+                                selectionMode="range"
+                                :manualInput="false"
+                                :maxDate="maxDate"
+                                dateFormat="dd/mm/yy"
+                                showIcon
+                                iconDisplay="input"
+                                placeholder="yyyy/mm/dd - yyyy/mm/dd"
+                                class="w-full md:w-[272px]"
+                            />
+                        </div>
+                        <Button
+                            type="button"
+                            variant="primary-outlined"
+                            class="w-full md:w-36"
+                            @click="exportCSV($event)"
+                        >
+                            {{ $t('public.export') }}
+                            <IconCloudDownload size="20" stroke-width="1.25" />
+                        </Button>
+                    </div> -->
+                    <div class="flex md:flex-wrap md:justify-end gap-3 w-full">
+                        <Button
+                            type="button"
+                            variant="gray-text"
+                            @click="expandAll"
+                        >
+                            <IconPlus size="20" stroke-width="1.25" />
+                            {{ $t('public.expand_all') }}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="gray-text"
+                            @click="collapseAll"
+                        >
+                            <IconMinus size="20" stroke-width="1.25" />
+                            {{ $t('public.collapse_all') }}
+                        </Button>
+                    </div>
+                </div>
+            </template>
+            <Column expander style="width: 5rem" />
+            <Column field="doc_date" :header="$t('public.doc_date')" sortable style="width: 45%" />
+            <Column field="total_amount" :header="$t('public.total_amount') + ' ($)'" style="width: 45%">
+                <template #body="slotProps">
+                    {{ formatAmount(slotProps.data.total_amount) }}
+                </template>
+            </Column>
+            <!-- <Column field="total_balance" :header="$t('public.total_balance') + ' ($)'" style="width: 30%">
+                <template #body="slotProps">
+                    {{ formatAmount(slotProps.data.total_balance) }}
+                </template>
+            </Column> -->
+            <template #expansion="slotProps">
+                <DataTable
+                    :value="slotProps.data.invoice_items"
+                    removable-sort
+                >
+                    <!-- <Column field="due_date" :header="$t('public.due_date')" sortable class="whitespace-nowrap"/> -->
+                    <Column field="item_code" :header="$t('public.item_code')" class="whitespace-nowrap"/>
+                    <Column field="account" :header="$t('public.account')" class="whitespace-nowrap"/>
+                    <Column field="description_hdr" :header="$t('public.description_hdr')" class="whitespace-nowrap"/>
+                    <Column field="seq" :header="$t('public.seq')" class="whitespace-nowrap"/>
+                    <Column field="description_dtl" :header="$t('public.description_dtl')" class="whitespace-nowrap"/>
+                    <Column field="qty" :header="$t('public.qty')" class="whitespace-nowrap"/>
+                    <Column field="uom" :header="$t('public.uom')" class="whitespace-nowrap"/>
+                    <Column field="unit_price" :header="$t('public.unit_price') + ' ($)'" sortable class="whitespace-nowrap">
+                        <template #body="slotProps">
+                            {{ formatAmount(slotProps.data.unit_price) }}
+                        </template>
+                    </Column>
+                    <Column field="amount" :header="$t('public.amount') + ' ($)'" sortable class="whitespace-nowrap">
+                        <template #body="slotProps">
+                            {{ formatAmount(slotProps.data.amount) }}
+                        </template>
+                    </Column>
+                </DataTable>
+            </template>
+        </DataTable>
+    </Dialog>
+
 </template>

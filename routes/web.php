@@ -31,6 +31,7 @@ Route::prefix('profile')->group(function () {
 Route::prefix('invoice')->group(function () {
     Route::get('/', [InvoiceController::class, 'index'])->name('invoice');
     Route::get('/getInvoicelisting', [InvoiceController::class, 'getInvoicelisting'])->name('invoice.getInvoicelisting');
+    Route::get('/getInvoiceItems', [InvoiceController::class, 'getInvoiceItems'])->name('invoice.getInvoiceItems');
 
     Route::post('upload', [InvoiceController::class, 'upload'])->name('invoice.upload');
     Route::post( 'sendEmails', [InvoiceController::class, 'sendEmails'])->name('invoice.sendEmails');
