@@ -45,5 +45,5 @@ return [
     'city' => "City",
     'state' => "State",
     'country' => "Country",
-
+    'bill_to' => "Bill To",
 ];

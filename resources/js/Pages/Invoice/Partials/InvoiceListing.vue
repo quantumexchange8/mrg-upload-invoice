@@ -626,7 +626,7 @@ const fetchInvoiceItems = async (invoiceId) => {
             <div class="w-full flex flex-col gap-2">
                 <div class="w-full flex flex-col md:flex-row gap-5">
                     <div class="w-full flex justify-start gap-1">
-                        <span class="whitespace-nowrap py-2">Bill To:</span>
+                        <span class="whitespace-nowrap py-2">{{ $t('public.bill_to') }}:</span>
                         <div class="flex flex-col px-3 py-2 text-gray-700">
                             <span class="font-bold">{{ data?.company_name }}</span>
                             <span class="uppercase">{{ [data?.address1, data?.address2].filter(Boolean).join(', ') }},</span>
