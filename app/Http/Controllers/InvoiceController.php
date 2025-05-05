@@ -12,6 +12,7 @@ use App\Imports\InvoicesImport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\InvoiceListingExport;
 
 class InvoiceController extends Controller
 {
@@ -84,11 +85,20 @@ class InvoiceController extends Controller
             $rowsPerPage = $data['rows'] ?? 15; // Default to 15 if 'rows' not provided
                     
             // Export logic
-            // if ($request->has('exportStatus') && $request->exportStatus) {
-            //     $rebateHistory = $query->get();
+            if ($request->has('exportStatus') && $request->exportStatus) {
+                // Check if there are selected invoices for export
+                $selectedIds = $request->input('selected_ids', default: []);
 
-            //     return Excel::download(new RebateHistoryExport($rebateHistory), now() . '-rebate-report.xlsx');
-            // }
+                if (!empty($selectedIds)) {
+                    // If selected invoices are provided, filter by selected IDs
+                    $invoiceListing = $query->whereIn('id', $selectedIds)->with('items')->get();
+                } else {
+                    // Otherwise, fetch all invoices
+                    $invoiceListing = $query->with('items')->get();
+                }
+
+                return Excel::download(new InvoiceListingExport($invoiceListing), now() . '-invoice-report.xlsx');
+            }
 
             $invoices = $query->paginate($rowsPerPage);
         }
@@ -103,82 +113,60 @@ class InvoiceController extends Controller
     public function getInvoiceItems(Request $request)
     {
         if ($request->has('lazyEvent')) {
-            $data = json_decode($request->only(['lazyEvent'])['lazyEvent'], true); // Extract parameters from lazyEvent
+            $data = json_decode($request->only(['lazyEvent'])['lazyEvent'], true);
             $invoiceId = $data['invoice_id'] ?? null;
     
-            // Build the query to fetch invoice items
-            $query = InvoiceItem::with('invoice:id,email,phone')
-                        ->where('invoice_id', $invoiceId);
+            $query = InvoiceItem::where('invoice_id', $invoiceId);
     
-            // Handle search functionality
-            $search = $data['filters']['global'];
-            if ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->whereHas('invoice', function ($query) use ($search) {
-                        $query->where('email', 'like', '%' . $search . '%')
-                            ->orWhere('phone', 'like', '%' . $search . '%');
-                    })
-                    ->orWhere('doc_no', 'like', '%' . $search . '%')
-                    ->orWhere('code', 'like', '%' . $search . '%');
-                });
-            }
+            // // Search filter
+            // $search = $data['filters']['global'];
+            // if ($search) {
+            //     $query->where(function ($query) use ($search) {
+            //         $query->whereHas('invoice', function ($query) use ($search) {
+            //             $query->where('email', 'like', "%{$search}%")
+            //                 ->orWhere('phone', 'like', "%{$search}%");
+            //         })
+            //         ->orWhere('doc_no', 'like', "%{$search}%")
+            //         ->orWhere('code', 'like', "%{$search}%");
+            //     });
+            // }
     
-            // Handle date range filtering
-            $startDate = $data['filters']['start_date'];
-            $endDate = $data['filters']['end_date'];
+            // // Date filters
+            // $startDate = $data['filters']['start_date'];
+            // $endDate = $data['filters']['end_date'];
+            // if ($startDate && $endDate) {
+            //     $query->whereBetween('created_at', [
+            //         Carbon::parse($startDate)->addDay()->startOfDay(),
+            //         Carbon::parse($endDate)->addDay()->endOfDay(),
+            //     ]);
+            // } else {
+            //     $query->whereDate('created_at', '>=', '2020-01-01');
+            // }
     
-            if ($startDate && $endDate) {
-                $start_date = Carbon::parse($startDate)->addDay()->startOfDay();
-                $end_date = Carbon::parse($endDate)->addDay()->endOfDay();
+            // $startClosedDate = $data['filters']['start_due_date'];
+            // $endClosedDate = $data['filters']['end_due_date'];
+            // if ($startClosedDate && $endClosedDate) {
+            //     $query->whereBetween('due_date', [
+            //         Carbon::parse($startClosedDate)->addDay()->startOfDay(),
+            //         Carbon::parse($endClosedDate)->addDay()->endOfDay(),
+            //     ]);
+            // } else {
+            //     $query->whereDate('due_date', '>=', '2020-01-01');
+            // }
     
-                $query->whereBetween('created_at', [$start_date, $end_date]);
-            } else {
-                $query->whereDate('created_at', '>=', '2020-01-01');
-            }
+            // // Sorting
+            // if ($data['sortField'] && $data['sortOrder']) {
+            //     $order = $data['sortOrder'] == 1 ? 'asc' : 'desc';
+            //     $query->orderBy($data['sortField'], $order);
+            // } else {
+            //     $query->orderByDesc('created_at');
+            // }
     
-            $startClosedDate = $data['filters']['start_due_date'];
-            $endClosedDate = $data['filters']['end_due_date'];
-    
-            if ($startClosedDate && $endClosedDate) {
-                $start_due_date = Carbon::parse($startClosedDate)->addDay()->startOfDay();
-                $end_due_date = Carbon::parse($endClosedDate)->addDay()->endOfDay();
-    
-                $query->whereBetween('due_date', [$start_due_date, $end_due_date]);
-            } else {
-                $query->whereDate('due_date', '>=', '2020-01-01');
-            }
-    
-            // Handle sorting
-            if ($data['sortField'] && $data['sortOrder']) {
-                $order = $data['sortOrder'] == 1 ? 'asc' : 'desc';
-                $query->orderBy($data['sortField'], $order);
-            } else {
-                $query->orderByDesc('created_at');
-            }
-    
-            // Fetch the results
             $invoiceItems = $query->get();
     
-            // Initialize an array to group invoice items by doc_date
-            $invoiceReports = [];
-    
-            // Group the invoice items by doc_date using foreach
+            $formattedItems = [];
             foreach ($invoiceItems as $item) {
-                // Format doc_date to group by month/year (YYYY-MM format)
-                $docDate = Carbon::parse($item->doc_date)->format('m/Y'); // Example: '05/2023'
-    
-                // Initialize the group array for the specific doc_date if not exists
-                if (!isset($invoiceReports[$docDate])) {
-                    $invoiceReports[$docDate] = [
-                        'doc_date' => $docDate,
-                        'total_amount' => 0, // Initialize any other fields you need
-                        'invoice_items' => []
-                    ];
-                }
-    
-                // Add the invoice item details to the grouped array
-                $invoiceReports[$docDate]['total_amount'] += $item->amount; // Assuming there's an amount field
-                $invoiceReports[$docDate]['invoice_items'][] = [
+                $formattedItems[] = [
                     'id' => $item->id,
                     'doc_no' => $item->doc_no,
                     'code' => $item->code,
@@ -195,14 +183,13 @@ class InvoiceController extends Controller
                 ];
             }
     
-            // Prepare the final response
             return response()->json([
                 'success' => true,
-                'data' => array_values($invoiceReports), // Re-index the array to avoid key issues
+                'data' => $formattedItems,
             ]);
         }
     }
-    
+        
     public function upload(Request $request)
     {
         $request->validate([

@@ -138,13 +138,15 @@ const onFilter = (event) => {
     loadLazyData(event);
 };
 
-// Optimized exportRebateSummary function
-const exportRebateReport = async () => {
+// Optimized exportInvoiceReport function
+const exportInvoiceReport = async () => {
     exportStatus.value = true;
     isLoading.value = true;
 
     lazyParams.value = { ...lazyParams.value, first: event?.first || first.value };
     lazyParams.value.filters = filters.value;
+
+    const selectedIds = selectedInvoices.value.map(invoice => invoice.id);
 
     const params = {
         page: JSON.stringify(event?.page + 1),
@@ -153,13 +155,15 @@ const exportRebateReport = async () => {
         include: [],
         lazyEvent: JSON.stringify(lazyParams.value),
         exportStatus: true,
+        selected_ids: selectedIds.length ? selectedIds : null, // only send if not empty
     };
-    const url = route('report.getRebateListing', params);
+
+    const url = route('invoice.getInvoicelisting', params);
 
     try {
         window.location.href = url;
     } catch (e) {
-        console.error('Error occured during export:', e);
+        console.error('Error occurred during export:', e);
     } finally {
         isLoading.value = false;
         exportStatus.value = false;
@@ -290,10 +294,12 @@ const sendEmails = () => {
 const data = ref({});
 const openDialog = (rowData) => {
     visible.value = true;
+    data.value = rowData;
     fetchInvoiceItems(rowData.id);
 };
 
 const invoiceItems = ref([]);
+const totalAmount = ref(0);
 
 const fetchInvoiceItems = async (invoiceId) => {
     isLoading.value = true;
@@ -314,21 +320,13 @@ const fetchInvoiceItems = async (invoiceId) => {
         const result = await response.json();
 
         invoiceItems.value = result?.data || [];
+        totalAmount.value = invoiceItems.value.reduce((sum, item) => sum + parseFloat(item.amount), 0);
     } catch (e) {
         console.error('Error fetching invoice items:', e);
         invoiceItems.value = [];
     } finally {
         isLoading.value = false;
     }
-};
-
-const expandedRows = ref({});
-
-const expandAll = () => {
-    expandedRows.value = invoiceItems.value.reduce((acc, p) => (acc[p.id] = true) && acc, {});
-};
-const collapseAll = () => {
-    expandedRows.value = null;
 };
 
 </script>
@@ -412,7 +410,7 @@ const collapseAll = () => {
                                     </Badge>
                                 </Button>
                             </div>
-                           <div class="w-full flex justify-end gap-2">
+                           <div class="w-full flex flex-col md:flex-row justify-end gap-2">
                                 <Button
                                     v-if="selectedInvoices?.length > 0"
                                     variant="primary-flat"
@@ -424,7 +422,7 @@ const collapseAll = () => {
 
                                <Button
                                    variant="primary-outlined"
-                                   @click="exportRebateReport"
+                                   @click="exportInvoiceReport"
                                    class="w-full md:w-auto"
                                >
                                    {{ $t('public.export') }}
@@ -518,28 +516,34 @@ const collapseAll = () => {
                         </template>
                     </Column>
 
-                    <!-- <Column class="md:hidden">
+                    <Column class="md:hidden">
                         <template #body="slotProps">
-                            <div class="flex items-center justify-between">
+                            <div class="flex items-center justify-between gap-1">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-7 h-7 rounded-full overflow-hidden grow-0 shrink-0">
-                                        <DefaultProfilePhoto />
-                                    </div>
                                     <div class="flex flex-col items-start">
-                                        <div class="text-sm font-semibold">
-                                            {{ slotProps.data.downline.name }}
+                                        <div class="flex flex-wrap items-start gap-x-2">
+                                            <div class="text-sm font-semibold w-auto">
+                                                {{ slotProps.data.doc_no }}
+                                            </div>
+                                            <div class="text-sm font-semibold w-auto">
+                                                {{ slotProps.data.code }}
+                                            </div>
+                                        </div>
+
+                                        <div class="text-gray-500 text-xs">
+                                            {{ `${$t('public.date')}: ${dayjs(slotProps.data.created_at).format('YYYY/MM/DD')}` }}
                                         </div>
                                         <div class="text-gray-500 text-xs">
-                                            {{ `${slotProps.data.meta_login}&nbsp;|&nbsp;${formatAmount(slotProps.data.volume)}&nbsp;Ł` }}
+                                            {{ `${$t('public.doc_date')}: ${dayjs(slotProps.data.doc_date).format('YYYY/MM/DD')}` }}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="overflow-hidden text-right text-ellipsis font-semibold">
-                                    $&nbsp;{{ formatAmount(slotProps.data.revenue) }}
+                                <div class="text-right font-semibold">
+                                    {{ dayjs(slotProps.data.due_date).format('YYYY/MM/DD') }}
                                 </div>
                             </div>
                         </template>
-                    </Column> -->
+                    </Column>
                 </template>
             </DataTable>
         </div>
@@ -615,10 +619,80 @@ const collapseAll = () => {
     <Dialog
         v-model:visible="visible"
         modal
-        :header="$t('public.invoice_items')"
+        :header="$t('public.invoice')"
         class="dialog-xs md:dialog-lg"
     >
-        <DataTable
+        <div class="w-full flex flex-col gap-5">
+            <div class="w-full flex flex-col gap-2">
+                <div class="w-full flex flex-col md:flex-row gap-5">
+                    <div class="w-full flex justify-start gap-1">
+                        <span class="whitespace-nowrap py-2">Bill To:</span>
+                        <div class="flex flex-col px-3 py-2 text-gray-700">
+                            <span class="font-bold">{{ data?.company_name }}</span>
+                            <span class="uppercase">{{ [data?.address1, data?.address2].filter(Boolean).join(', ') }},</span>
+                            <span class="uppercase">{{ [data?.postcode, data?.city, data?.state, data?.country].filter(Boolean).join(', ') }}.</span>
+                            <span class="uppercase">Tel: {{ data?.phone }}</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex md:justify-end gap-1">
+                        <div class="w-full md:w-auto flex-col px-3 py-2 text-gray-700">
+                            <div class="flex gap-2">
+                                <span class="min-w-[120px] whitespace-nowrap">{{ $t('public.no') }}.</span>
+                                <span class="whitespace-nowrap font-bold">{{ data?.doc_no }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="min-w-[120px] whitespace-nowrap">{{ $t('public.date') }}</span>
+                                <span class="whitespace-nowrap">{{ data?.doc_date }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="min-w-[120px] whitespace-nowrap">{{ $t('public.terms') }}</span>
+                                <span class="whitespace-nowrap">{{ data?.terms }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full flex flex-col gap-1">
+                <div class="w-full flex flex-col border-y border-gray-300">
+                    <DataTable
+                        :value="invoiceItems"
+                        dataKey="id"
+                        removable-sort
+                    >
+                        <Column field="seq" :header="'#'" class="whitespace-nowrap"/>
+                        <!-- <Column :header="'#'" class="whitespace-nowrap">
+                            <template #body="slotProps">
+                                {{ slotProps.index + 1 }}
+                            </template>
+                        </Column> -->
+                        <Column field="item_code" :header="$t('public.item_code')" class="whitespace-nowrap"/>
+                        <Column field="description_hdr" :header="$t('public.description_hdr')" class="whitespace-nowrap"/>
+                        <Column field="description_dtl" :header="$t('public.description_dtl')" class="whitespace-nowrap"/>
+                        <Column field="qty" :header="$t('public.qty')" class="whitespace-nowrap uppercase"/>
+                        <Column field="uom" :header="$t('public.uom')" class="whitespace-nowrap uppercase"/>
+                        <Column field="unit_price" :header="$t('public.unit_price') + ' ($)'" sortable class="whitespace-nowrap">
+                            <template #body="slotProps">
+                                {{ formatAmount(slotProps.data.unit_price) }}
+                            </template>
+                        </Column>
+                        <Column field="amount" :header="$t('public.amount') + ' ($)'" sortable class="whitespace-nowrap">
+                            <template #body="slotProps">
+                                {{ formatAmount(slotProps.data.amount) }}
+                            </template>
+                        </Column>
+                    </DataTable>
+                </div>
+
+                <div class="w-full flex justify-end items-center gap-1">
+                    <span class="text-gray-700 font-bold">{{ $t('public.total_amount') }}:</span>
+                    <span class="text-gray-700 font-bold">$ {{ formatAmount(totalAmount) }}</span>
+                </div>
+            </div>
+
+        </div>
+        <!-- <DataTable
             v-model:expandedRows="expandedRows"
             :value="invoiceItems"
             dataKey="id"
@@ -626,7 +700,7 @@ const collapseAll = () => {
         >
             <template #header>
                 <div class="flex flex-col gap-5 items-center self-stretch mb-5">
-                    <!-- <div class="flex flex-col gap-3 md:flex-row md:justify-between items-center self-stretch">
+                    <div class="flex flex-col gap-3 md:flex-row md:justify-between items-center self-stretch">
                         <div class="flex flex-col md:flex-row gap-3 items-center w-full">
                             <IconField iconPosition="left" class="relative flex items-center w-full md:w-60">
                                 <CalendarIcon class="z-20 w-5 h-5 text-gray-400" />
@@ -661,7 +735,7 @@ const collapseAll = () => {
                             {{ $t('public.export') }}
                             <IconCloudDownload size="20" stroke-width="1.25" />
                         </Button>
-                    </div> -->
+                    </div>
                     <div class="flex md:flex-wrap md:justify-end gap-3 w-full">
                         <Button
                             type="button"
@@ -694,7 +768,6 @@ const collapseAll = () => {
                     :value="slotProps.data.invoice_items"
                     removable-sort
                 >
-                    <!-- <Column field="due_date" :header="$t('public.due_date')" sortable class="whitespace-nowrap"/> -->
                     <Column field="item_code" :header="$t('public.item_code')" class="whitespace-nowrap"/>
                     <Column field="account" :header="$t('public.account')" class="whitespace-nowrap"/>
                     <Column field="description_hdr" :header="$t('public.description_hdr')" class="whitespace-nowrap"/>
@@ -714,7 +787,7 @@ const collapseAll = () => {
                     </Column>
                 </DataTable>
             </template>
-        </DataTable>
+        </DataTable> -->
     </Dialog>
 
 </template>

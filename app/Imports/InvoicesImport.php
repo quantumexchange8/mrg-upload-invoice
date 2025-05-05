@@ -22,12 +22,12 @@ class InvoicesImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        // Filter out any rows without docno
+        // Filter out any rows without doc_no
         $rows = $rows->filter(function ($row) {
-            return !empty($row['docno']);
+            return !empty($row['doc_no']);
         });
 
-        $groupedData = $rows->groupBy('docno');
+        $groupedData = $rows->groupBy('doc_no');
         
         foreach ($groupedData as $docNo => $invoiceItems) {
             // Access first item to get doc_date and due_date for the invoice
@@ -35,12 +35,12 @@ class InvoicesImport implements ToCollection, WithHeadingRow
 
             // Handle doc_date and due_date conversion for the invoice (use the first item)
             try {
-                $docDate = $this->parseDate($firstItem['docdate']);
-                $dueDate = $this->parseDate($firstItem['duedate']);
+                $docDate = $this->parseDate($firstItem['doc_date']);
+                $dueDate = $this->parseDate($firstItem['due_date']);
             } catch (\Exception $e) {
                 Log::error('Date error: ' . $e->getMessage(), [
-                    'docdate_raw' => $firstItem['docdate'],
-                    'duedate_raw' => $firstItem['duedate'],
+                    'docdate_raw' => $firstItem['doc_date'],
+                    'duedate_raw' => $firstItem['due_date'],
                 ]);
                 continue; // Skip this invoice if dates are invalid
             }
@@ -56,7 +56,7 @@ class InvoicesImport implements ToCollection, WithHeadingRow
                     'doc_no' => $docNo,
                     'doc_date' => $docDate,
                     'code' => $firstItem['code'],
-                    'company_name' => $firstItem['companyname'] ?? null,
+                    'company_name' => $firstItem['company_name'] ?? null,
                     'address1' => $firstItem['address1'] ?? null,
                     'address2' => $firstItem['address2'] ?? null,
                     'postcode' => $firstItem['postcode'] ?? null,
@@ -73,14 +73,14 @@ class InvoicesImport implements ToCollection, WithHeadingRow
             // Loop through invoice items and create each one individually
             foreach ($invoiceItems as $item) {
                 try {
-                    $itemDocDate = $this->parseDate($item['docdate']);
-                    $itemDueDate = $this->parseDate($item['duedate']);
+                    $itemDocDate = $this->parseDate($item['doc_date']);
+                    $itemDueDate = $this->parseDate($item['due_date']);
                     
                     // Create the Invoice Item
                     InvoiceItem::firstOrCreate(
                         [
                         'invoice_id' => $invoice->id,
-                        'doc_no' => $item['docno'],
+                        'doc_no' => $item['doc_no'],
                         'doc_date' => $itemDocDate,
                         'code' => $item['code'],
                         'description_hdr' => $item['description_hdr'] ?? null,
@@ -88,15 +88,15 @@ class InvoicesImport implements ToCollection, WithHeadingRow
                         'description_dtl' => $item['description_dtl'] ?? null,
                         'qty' => $item['qty'] ?? null,
                         'uom' => $item['uom'] ?? null,
-                        'unit_price' => $item['unitprice'] ?? null,
+                        'unit_price' => $item['unit_price'] ?? null,
                         'amount' => $item['amount'] ?? null,
-                        'item_code' => $item['itemcode'] ?? null,
+                        'item_code' => $item['item_code'] ?? null,
                         'account' => $item['account'] ?? null,
                         'due_date' => $itemDueDate,
                         ],
                         [
                         'invoice_id' => $invoice->id,
-                        'doc_no' => $item['docno'],
+                        'doc_no' => $item['doc_no'],
                         'doc_date' => $itemDocDate,
                         'code' => $item['code'],
                         'description_hdr' => $item['description_hdr'] ?? null,
@@ -104,15 +104,15 @@ class InvoicesImport implements ToCollection, WithHeadingRow
                         'description_dtl' => $item['description_dtl'] ?? null,
                         'qty' => $item['qty'] ?? null,
                         'uom' => $item['uom'] ?? null,
-                        'unit_price' => $item['unitprice'] ?? null,
+                        'unit_price' => $item['unit_price'] ?? null,
                         'amount' => $item['amount'] ?? null,
-                        'item_code' => $item['itemcode'] ?? null,
+                        'item_code' => $item['item_code'] ?? null,
                         'account' => $item['account'] ?? null,
                         'due_date' => $itemDueDate,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Error creating invoice item: ' . $e->getMessage(), [
-                        'docno' => $item['docno'],
+                        'doc_no' => $item['doc_no'],
                         'item' => $item,
                     ]);
                 }
