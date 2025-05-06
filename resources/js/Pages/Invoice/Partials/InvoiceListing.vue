@@ -661,12 +661,12 @@ const fetchInvoiceItems = async (invoiceId) => {
                         dataKey="id"
                         removable-sort
                     >
-                        <Column field="seq" :header="'#'" class="whitespace-nowrap"/>
-                        <!-- <Column :header="'#'" class="whitespace-nowrap">
+                        <!-- <Column field="seq" :header="'#'" class="whitespace-nowrap"/> -->
+                        <Column :header="'#'" class="whitespace-nowrap">
                             <template #body="slotProps">
                                 {{ slotProps.index + 1 }}
                             </template>
-                        </Column> -->
+                        </Column>
                         <Column field="item_code" :header="$t('public.item_code')" class="whitespace-nowrap"/>
                         <Column field="description_dtl" :header="$t('public.description')" class="whitespace-nowrap"/>
                         <Column field="qty" :header="$t('public.qty')" class="whitespace-nowrap uppercase"/>
