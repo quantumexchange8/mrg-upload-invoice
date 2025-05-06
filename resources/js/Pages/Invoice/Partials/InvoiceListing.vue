@@ -620,7 +620,7 @@ const fetchInvoiceItems = async (invoiceId) => {
         v-model:visible="visible"
         modal
         :header="$t('public.invoice')"
-        class="dialog-xs md:dialog-lg"
+        class="dialog-xs md:dialog-lg lg:w-auto"
     >
         <div class="w-full flex flex-col gap-5">
             <div class="w-full flex flex-col gap-2">
@@ -631,7 +631,7 @@ const fetchInvoiceItems = async (invoiceId) => {
                             <span class="font-bold">{{ data?.company_name }}</span>
                             <span class="uppercase">{{ [data?.address1, data?.address2].filter(Boolean).join(', ') }},</span>
                             <span class="uppercase">{{ [data?.postcode, data?.city, data?.state, data?.country].filter(Boolean).join(', ') }}.</span>
-                            <span class="uppercase">Tel: {{ data?.phone }}</span>
+                            <span class="uppercase">{{ $t('public.tel') }}: {{ data?.phone }}</span>
                         </div>
                     </div>
 
@@ -668,8 +668,7 @@ const fetchInvoiceItems = async (invoiceId) => {
                             </template>
                         </Column> -->
                         <Column field="item_code" :header="$t('public.item_code')" class="whitespace-nowrap"/>
-                        <Column field="description_hdr" :header="$t('public.description_hdr')" class="whitespace-nowrap"/>
-                        <Column field="description_dtl" :header="$t('public.description_dtl')" class="whitespace-nowrap"/>
+                        <Column field="description_dtl" :header="$t('public.description')" class="whitespace-nowrap"/>
                         <Column field="qty" :header="$t('public.qty')" class="whitespace-nowrap uppercase"/>
                         <Column field="uom" :header="$t('public.uom')" class="whitespace-nowrap uppercase"/>
                         <Column field="unit_price" :header="$t('public.unit_price') + ' ($)'" sortable class="whitespace-nowrap">

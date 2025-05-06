@@ -33,6 +33,7 @@ return [
     'account' => "Account",
     'description_hdr' => "Description HDR",
     'description_dtl' => "Description DTL",
+    'description' => "Description",
     'qty' => "Qty",
     'uom' => "Uom",
     'unit_price' => "Unit Price",
@@ -46,4 +47,5 @@ return [
     'state' => "State",
     'country' => "Country",
     'bill_to' => "Bill To",
+    'tel' => "Tel",
 ];
